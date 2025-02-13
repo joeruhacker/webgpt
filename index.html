@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>GPT Web Bot</title>
+  <style>
+    /* Стили для имитации "гугл-стиля" */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+    }
+
+    .google-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .google-logo {
+      font-size: 48px;
+      font-weight: bold;
+      color: #4285f4;
+      margin-bottom: 20px;
+    }
+
+    .search-box {
+      display: flex;
+      width: 50%;
+      max-width: 600px;
+      background-color: white;
+      border: 1px solid #dfe1e5;
+      box-shadow: none;
+      border-radius: 24px;
+      padding: 0 14px;
+      margin-bottom: 20px;
+    }
+
+    .search-input {
+      flex: 1;
+      border: none;
+      font-size: 16px;
+      padding: 10px;
+      outline: none;
+    }
+
+    .search-button {
+      border: none;
+      background-color: #f8f9fa;
+      font-size: 14px;
+      margin: 8px;
+      padding: 0 16px;
+      color: #3c4043;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .search-button:hover {
+      background-color: #e8e9ea;
+    }
+
+    .answer-container {
+      width: 50%;
+      max-width: 600px;
+      background-color: #fff;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 20px;
+      font-size: 16px;
+      white-space: pre-wrap; /* чтобы перенос строк отображался корректно */
+    }
+
+    .answer-title {
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    @media (max-width: 600px) {
+      .search-box, .answer-container {
+        width: 90%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="google-container">
+    <div class="google-logo">GoogleGPT</div>
+
+    <!-- Поле ввода и кнопка "Поиск" -->
+    <div class="search-box">
+      <input
+        type="text"
+        id="userInput"
+        class="search-input"
+        placeholder="Спросите у бота..."
+      />
+      <button class="search-button" onclick="sendMessage()">Отправить</button>
+    </div>
+
+    <!-- Место для отображения ответа ассистента -->
+    <div id="answerContainer" class="answer-container" style="display: none;">
+      <div class="answer-title">Ответ ассистента:</div>
+      <div id="assistantReply"></div>
+    </div>
+  </div>
+
+  <script>
+    // Укажите адрес вашего бэкенда Flask.
+    // Например, если локально: http://127.0.0.1:5000/ask
+    // Или если вы задеплоили на сервере, то используйте URL вашего сервера.
+    const BACKEND_URL = "https://127.0.0.1:5000/ask";
+
+    async function sendMessage() {
+      const userInput = document.getElementById("userInput");
+      const message = userInput.value.trim();
+
+      if (!message) {
+        alert("Введите сообщение!");
+        return;
+      }
+
+      // Отправляем POST-запрос на бэкенд
+      try {
+        const response = await fetch(BACKEND_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ message: message }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Ошибка при запросе к серверу");
+        }
+
+        const data = await response.json();
+
+        // Если есть поле "reply", значит всё хорошо
+        if (data.reply) {
+          document.getElementById("assistantReply").innerText = data.reply;
+          document.getElementById("answerContainer").style.display = "block";
+        } else if (data.error) {
+          document.getElementById("assistantReply").innerText =
+            "Ошибка: " + data.error;
+          document.getElementById("answerContainer").style.display = "block";
+        }
+      } catch (error) {
+        document.getElementById("assistantReply").innerText =
+          "Не удалось отправить запрос: " + error.message;
+        document.getElementById("answerContainer").style.display = "block";
+      }
+    }
+  </script>
+</body>
+</html>
