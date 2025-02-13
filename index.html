@@ -1,157 +1,206 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>GPT Web Bot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    /* Стили для имитации "гугл-стиля" */
-    body {
+    /* Общие стили */
+    * {
+      box-sizing: border-box;
+    }
+    body, html {
       margin: 0;
       padding: 0;
-      font-family: Arial, sans-serif;
-      background-color: #f2f2f2;
+      height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f6f9fc, #e9eff5);
     }
-
-    .google-container {
+    /* Основной контейнер */
+    .container {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
+      height: 100%;
     }
-
-    .google-logo {
-      font-size: 48px;
+    /* Шапка */
+    .chat-header {
+      background-color: #4285f4;
+      color: #fff;
+      padding: 20px;
+      text-align: center;
+      font-size: 24px;
       font-weight: bold;
-      color: #4285f4;
-      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-
-    .search-box {
+    /* Область с сообщениями */
+    .chat-messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
       display: flex;
-      width: 50%;
-      max-width: 600px;
-      background-color: white;
-      border: 1px solid #dfe1e5;
-      box-shadow: none;
-      border-radius: 24px;
-      padding: 0 14px;
-      margin-bottom: 20px;
+      flex-direction: column;
+      gap: 10px;
     }
-
-    .search-input {
+    .message {
+      max-width: 70%;
+      padding: 10px 15px;
+      border-radius: 20px;
+      line-height: 1.4;
+      transition: all 0.3s ease;
+      word-wrap: break-word;
+    }
+    .message.user {
+      background-color: #d1eaff;
+      align-self: flex-end;
+    }
+    .message.assistant {
+      background-color: #fff;
+      align-self: flex-start;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    /* Область ввода */
+    .chat-input-area {
+      padding: 10px 20px;
+      background-color: #fff;
+      border-top: 1px solid #ccc;
+    }
+    .input-container {
+      display: flex;
+      align-items: center;
+    }
+    .chat-input {
       flex: 1;
       border: none;
+      resize: none;
+      outline: none;
       font-size: 16px;
       padding: 10px;
-      outline: none;
+      border-radius: 20px;
+      background-color: #f2f2f2;
+      transition: background-color 0.3s ease;
+      max-height: 150px;
+      overflow-y: auto;
     }
-
-    .search-button {
+    .chat-input:focus {
+      background-color: #e9eff5;
+    }
+    .send-button {
+      background-color: #4285f4;
       border: none;
-      background-color: #f8f9fa;
-      font-size: 14px;
-      margin: 8px;
-      padding: 0 16px;
-      color: #3c4043;
-      border-radius: 4px;
+      color: #fff;
+      padding: 10px 20px;
+      margin-left: 10px;
+      border-radius: 20px;
       cursor: pointer;
+      transition: background-color 0.3s ease;
     }
-
-    .search-button:hover {
-      background-color: #e8e9ea;
+    .send-button:hover {
+      background-color: #357ae8;
     }
-
-    .answer-container {
-      width: 50%;
-      max-width: 600px;
-      background-color: #fff;
-      border-radius: 8px;
-      padding: 16px;
-      margin-top: 20px;
-      font-size: 16px;
-      white-space: pre-wrap; /* чтобы перенос строк отображался корректно */
-    }
-
-    .answer-title {
-      font-weight: bold;
-      margin-bottom: 8px;
-    }
-
+    /* Адаптивность */
     @media (max-width: 600px) {
-      .search-box, .answer-container {
-        width: 90%;
+      .chat-header {
+        font-size: 20px;
+        padding: 15px;
+      }
+      .chat-input {
+        font-size: 14px;
+        padding: 8px;
+      }
+      .send-button {
+        padding: 8px 16px;
       }
     }
   </style>
 </head>
 <body>
-  <div class="google-container">
-    <div class="google-logo">Поиск туров все для отдыха</div>
-
-    <!-- Поле ввода и кнопка "Поиск" -->
-    <div class="search-box">
-      <input
-        type="text"
-        id="userInput"
-        class="search-input"
-        placeholder="Спросите у бота..."
-      />
-      <button class="search-button" onclick="sendMessage()">Отправить</button>
+  <div class="container">
+    <div class="chat-header">Поиск туров: Всё для отдыха</div>
+    <div id="chatMessages" class="chat-messages">
+      <!-- Сообщения будут добавляться сюда -->
     </div>
-
-    <!-- Место для отображения ответа ассистента -->
-    <div id="answerContainer" class="answer-container" style="display: none;">
-      <div class="answer-title">Ответ ассистента:</div>
-      <div id="assistantReply"></div>
+    <div class="chat-input-area">
+      <div class="input-container">
+        <textarea id="userInput" class="chat-input" rows="1" placeholder="Спросите у бота..." onkeydown="handleKeyDown(event)"></textarea>
+        <button class="send-button" onclick="sendMessage()">Отправить</button>
+      </div>
     </div>
   </div>
 
   <script>
-    // Укажите адрес вашего бэкенда Flask.
-    // Например, если локально: http://127.0.0.1:5000/ask
-    // Или если вы задеплоили на сервере, то используйте URL вашего сервера.
+    // URL вашего backend (Flask)
     const BACKEND_URL = "https://a32524-55b5.u.d-f.pw/ask";
+    const chatMessages = document.getElementById("chatMessages");
+    const userInput = document.getElementById("userInput");
 
-    async function sendMessage() {
-      const userInput = document.getElementById("userInput");
+    // Добавление сообщения в чат
+    function appendMessage(text, sender) {
+      const messageDiv = document.createElement("div");
+      messageDiv.classList.add("message", sender);
+      messageDiv.innerText = text;
+      chatMessages.appendChild(messageDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Отправка сообщения
+    function sendMessage() {
       const message = userInput.value.trim();
-
       if (!message) {
         alert("Введите сообщение!");
         return;
       }
+      // Добавляем сообщение пользователя
+      appendMessage(message, "user");
+      userInput.value = "";
+      adjustTextareaHeight();
 
-      // Отправляем POST-запрос на бэкенд
-      try {
-        const response = await fetch(BACKEND_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ message: message }),
-        });
+      // Показываем временное сообщение "Загрузка..."
+      const loadingMessage = document.createElement("div");
+      loadingMessage.classList.add("message", "assistant");
+      loadingMessage.innerText = "Загрузка...";
+      chatMessages.appendChild(loadingMessage);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
 
+      fetch(BACKEND_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: message }),
+      })
+      .then(response => {
         if (!response.ok) {
           throw new Error("Ошибка при запросе к серверу");
         }
-
-        const data = await response.json();
-
-        // Если есть поле "reply", значит всё хорошо
+        return response.json();
+      })
+      .then(data => {
+        loadingMessage.remove();
         if (data.reply) {
-          document.getElementById("assistantReply").innerText = data.reply;
-          document.getElementById("answerContainer").style.display = "block";
+          appendMessage(data.reply, "assistant");
         } else if (data.error) {
-          document.getElementById("assistantReply").innerText =
-            "Ошибка: " + data.error;
-          document.getElementById("answerContainer").style.display = "block";
+          appendMessage("Ошибка: " + data.error, "assistant");
         }
-      } catch (error) {
-        document.getElementById("assistantReply").innerText =
-          "Не удалось отправить запрос: " + error.message;
-        document.getElementById("answerContainer").style.display = "block";
+      })
+      .catch(error => {
+        loadingMessage.remove();
+        appendMessage("Не удалось отправить запрос: " + error.message, "assistant");
+      });
+    }
+
+    // Обработка нажатия клавиш
+    function handleKeyDown(event) {
+      // Отправка при Enter (без Shift для переноса строки)
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
       }
+      // Автоматическое изменение высоты textarea
+      adjustTextareaHeight();
+    }
+
+    // Функция автоподгонки высоты textarea
+    function adjustTextareaHeight() {
+      userInput.style.height = "auto";
+      userInput.style.height = userInput.scrollHeight + "px";
     }
   </script>
 </body>
